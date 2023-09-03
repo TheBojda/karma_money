@@ -1,0 +1,13 @@
+{
+  "name": "karma_money",
+  "version": "1.0.0",
+  "description": "Karma: ERC20 compatible alternative money on the Ethereum blockchain",
+  "repository": "https://github.com/TheBojda/karma_money.git",
+  "author": "Laszlo Fazekas <thebojda@gmail.com>",
+  "devDependencies": {
+    "hardhat": "^2.17.2"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.9.3"
+  }
+}
