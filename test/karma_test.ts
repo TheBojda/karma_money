@@ -15,6 +15,12 @@ describe("Karma Smart contract test", () => {
         console.log(`balance of ALICE: ${await contract.balanceOf(ALICE.address)}`)
         console.log(`balance of JOHN: ${await contract.balanceOf(JOHN.address)}`)
         console.log(`balance of PETER: ${await contract.balanceOf(PETER.address)}`)
+        console.log(`debt of ALICE -> JOHN: ${await contract.debtOf(ALICE.address, JOHN.address)}`)
+        console.log(`debt of ALICE -> PETER: ${await contract.debtOf(ALICE.address, PETER.address)}`)
+        console.log(`debt of JOHN -> ALICE: ${await contract.debtOf(JOHN.address, ALICE.address)}`)
+        console.log(`debt of JOHN -> PETER: ${await contract.debtOf(JOHN.address, PETER.address)}`)
+        console.log(`debt of PETER -> ALICE: ${await contract.debtOf(PETER.address, ALICE.address)}`)
+        console.log(`debt of PETER -> JOHN: ${await contract.debtOf(PETER.address, JOHN.address)}`)
     }
 
     before(async () => {
