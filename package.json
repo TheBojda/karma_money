@@ -4,8 +4,15 @@
   "description": "Karma: ERC20 compatible alternative money on the Ethereum blockchain",
   "repository": "https://github.com/TheBojda/karma_money.git",
   "author": "Laszlo Fazekas <thebojda@gmail.com>",
+  "scripts": {
+    "test": "hardhat test"
+  },
   "devDependencies": {
-    "hardhat": "^2.17.2"
+    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "@types/mocha": "^10.0.1",
+    "hardhat": "^2.17.2",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.9.3"
