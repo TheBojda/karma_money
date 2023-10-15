@@ -1,6 +1,8 @@
 import { ethers } from "hardhat";
 import { Karma } from "../typechain-types";
 import { assert } from "chai";
+import { SignTypedDataVersion, recoverTypedSignature } from "@metamask/eth-sig-util"
+import { toBigInt } from "ethers";
 
 describe("Karma Smart contract test", () => {
 
@@ -10,6 +12,8 @@ describe("Karma Smart contract test", () => {
     let ALICE: any
     let JOHN: any
     let PETER: any
+
+    let karma_request_domain: any
 
     async function showBalances() {
         console.log(`balance of ALICE: ${await contract.balanceOf(ALICE.address)}`)
@@ -31,7 +35,14 @@ describe("Karma Smart contract test", () => {
         PETER = signers[3]
 
         const Karma = await ethers.getContractFactory("Karma");
-        contract = await Karma.deploy("Karma USD", "kUSD", 0);
+        contract = await Karma.deploy("Karma USD", "kUSD");
+
+        karma_request_domain = {
+            "name": "Karma Request",
+            "version": "1",
+            "chainId": 31337,
+            "verifyingContract": await contract.getAddress()
+        }
     })
 
     it("Moving 10 kUSD from ALICE to JOHN", async () => {
@@ -54,11 +65,171 @@ describe("Karma Smart contract test", () => {
     })
 
     it("Mine the cycle", async () => {
-        await contract.mineCycle([ALICE.address, JOHN.address, PETER.address], 10)
+        await contract.connect(MINER).mineCycle([ALICE.address, JOHN.address, PETER.address])
         await showBalances()
         assert.equal(await contract.balanceOf(ALICE.address), ethers.toBigInt(0))
         assert.equal(await contract.balanceOf(JOHN.address), ethers.toBigInt(0))
         assert.equal(await contract.balanceOf(PETER.address), ethers.toBigInt(0))
+    })
+
+    const EIP712Domain = {
+        "EIP712Domain": [
+            {
+                "name": "name",
+                "type": "string"
+            },
+            {
+                "name": "version",
+                "type": "string"
+            },
+            {
+                "name": "chainId",
+                "type": "uint256"
+            },
+            {
+                "name": "verifyingContract",
+                "type": "address"
+            }
+        ]
+    }
+
+    it("Meta transfer request for 10 kUSD from ALICE to JOHN", async () => {
+        const types = {
+            "TransferRequest": [
+                {
+                    "name": "to",
+                    "type": "address"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint256"
+                }
+            ]
+        }
+        const message = {
+            "to": JOHN.address,
+            "amount": 10
+        }
+
+        const signature = await ALICE.signTypedData(karma_request_domain, types, message)
+
+        const recorveredAddress = recoverTypedSignature({
+            data: {
+                "types": {
+                    ...EIP712Domain,
+                    ...types
+                },
+                "primaryType": "TransferRequest",
+                "domain": karma_request_domain,
+                "message": message
+            },
+            signature: signature,
+            version: SignTypedDataVersion.V4
+        })
+        assert.equal(recorveredAddress.toLowerCase(), ALICE.address.toLowerCase())
+    })
+
+    it("Meta transfer for 10 kUSD from ALICE to JOHN, executed by MINER", async () => {
+        const types = {
+            "TransferRequest": [
+                {
+                    "name": "from",
+                    "type": "address"
+                },
+                {
+                    "name": "to",
+                    "type": "address"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint256"
+                },
+                {
+                    "name": "nonce",
+                    "type": "uint256"
+                }
+            ]
+        }
+
+        let nonce = await contract.connect(MINER).getNonce(ALICE.address)
+        const message = {
+            "from": ALICE.address,
+            "to": JOHN.address,
+            "amount": 10,
+            "nonce": nonce
+        }
+
+        const signature = await ALICE.signTypedData(karma_request_domain, types, message)
+        await contract.connect(MINER).metaTransfer(ALICE.address, JOHN.address, 10, nonce, signature)
+        await showBalances()
+        assert.equal(await contract.balanceOf(ALICE.address), ethers.toBigInt(10))
+    })
+
+    it("Meta approve for 10 kUSD from ALICE to JOHN, executed by MINER", async () => {
+        const types = {
+            "ApproveRequest": [
+                {
+                    "name": "owner",
+                    "type": "address"
+                },
+                {
+                    "name": "spender",
+                    "type": "address"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint256"
+                },
+                {
+                    "name": "nonce",
+                    "type": "uint256"
+                }
+            ]
+        }
+
+        let nonce = await contract.connect(MINER).getNonce(ALICE.address)
+        const message = {
+            "owner": ALICE.address,
+            "spender": JOHN.address,
+            "amount": 10,
+            "nonce": nonce
+        }
+
+        const signature = await ALICE.signTypedData(karma_request_domain, types, message)
+        await contract.connect(MINER).metaApprove(ALICE.address, JOHN.address, 10, nonce, signature)
+        let allowance = await contract.allowance(ALICE.address, JOHN.address);
+        assert.equal(allowance, toBigInt(10));
+    })
+
+    it("Meta set cycle reward to 1 kUSD for ALICE, executed by MINER", async () => {
+        const types = {
+            "SetCycleRewardRequest": [
+                {
+                    "name": "owner",
+                    "type": "address"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint256"
+                },
+                {
+                    "name": "nonce",
+                    "type": "uint256"
+                }
+            ]
+        }
+
+        let nonce = await contract.connect(MINER).getNonce(ALICE.address)
+        const message = {
+            "owner": ALICE.address,
+            "amount": 1,
+            "nonce": nonce
+        }
+
+        const signature = await ALICE.signTypedData(karma_request_domain, types, message)
+        await contract.connect(MINER).metaSetCycleReward(ALICE.address, 1, nonce, signature)
+        let reward = await contract.cycleRewardOf(ALICE.address)
+        assert.equal(reward, toBigInt(1));
     })
 
 })
