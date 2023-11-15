@@ -20,17 +20,17 @@ contract Karma is IERC20, IERC20Metadata, EIP712 {
 
     bytes32 constant TRANSFER_REQUEST_TYPEHASH =
         keccak256(
-            "TransferRequest(address from,address to,uint256 amount,uint256 nonce)"
+            "TransferRequest(address from,address to,uint256 amount,uint256 fee,uint256 nonce)"
         );
 
     bytes32 constant APPROVE_REQUEST_TYPEHASH =
         keccak256(
-            "ApproveRequest(address owner,address spender,uint256 amount,uint256 nonce)"
+            "ApproveRequest(address owner,address spender,uint256 amount,uint256 fee,uint256 nonce)"
         );
 
     bytes32 constant SET_CYCLE_REWARD_REQUEST_TYPEHASH =
         keccak256(
-            "SetCycleRewardRequest(address owner,uint256 amount,uint256 nonce)"
+            "SetCycleRewardRequest(address owner,uint256 amount,uint256 fee,uint256 nonce)"
         );
 
     constructor(
@@ -161,9 +161,11 @@ contract Karma is IERC20, IERC20Metadata, EIP712 {
         address from,
         address to,
         uint256 amount,
+        uint256 fee,
         uint256 nonce,
         bytes calldata signature
     ) public virtual returns (bool) {
+        uint256 currentNonce = _useNonce(from, nonce);
         (address recoveredAddress, ECDSA.RecoverError err) = ECDSA.tryRecover(
             _hashTypedDataV4(
                 keccak256(
@@ -172,7 +174,8 @@ contract Karma is IERC20, IERC20Metadata, EIP712 {
                         from,
                         to,
                         amount,
-                        _useNonce(from, nonce)
+                        fee,
+                        currentNonce
                     )
                 )
             ),
@@ -185,6 +188,7 @@ contract Karma is IERC20, IERC20Metadata, EIP712 {
         );
 
         _transfer(recoveredAddress, to, amount);
+        _transfer(recoveredAddress, msg.sender, fee);
         return true;
     }
 
@@ -192,9 +196,11 @@ contract Karma is IERC20, IERC20Metadata, EIP712 {
         address owner,
         address spender,
         uint256 amount,
+        uint256 fee,
         uint256 nonce,
         bytes calldata signature
     ) public virtual returns (bool) {
+        uint256 currentNonce = _useNonce(owner, nonce);
         (address recoveredAddress, ECDSA.RecoverError err) = ECDSA.tryRecover(
             _hashTypedDataV4(
                 keccak256(
@@ -203,7 +209,8 @@ contract Karma is IERC20, IERC20Metadata, EIP712 {
                         owner,
                         spender,
                         amount,
-                        _useNonce(owner, nonce)
+                        fee,
+                        currentNonce
                     )
                 )
             ),
@@ -222,9 +229,11 @@ contract Karma is IERC20, IERC20Metadata, EIP712 {
     function metaSetCycleReward(
         address owner,
         uint256 amount,
+        uint256 fee,
         uint256 nonce,
         bytes calldata signature
     ) public virtual returns (bool) {
+        uint256 currentNonce = _useNonce(owner, nonce);
         (address recoveredAddress, ECDSA.RecoverError err) = ECDSA.tryRecover(
             _hashTypedDataV4(
                 keccak256(
@@ -232,7 +241,8 @@ contract Karma is IERC20, IERC20Metadata, EIP712 {
                         SET_CYCLE_REWARD_REQUEST_TYPEHASH,
                         owner,
                         amount,
-                        _useNonce(owner, nonce)
+                        fee,
+                        currentNonce
                     )
                 )
             ),

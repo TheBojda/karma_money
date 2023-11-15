@@ -25,6 +25,7 @@ describe("Karma Smart contract test", () => {
         console.log(`debt of JOHN -> PETER: ${await contract.debtOf(JOHN.address, PETER.address)}`)
         console.log(`debt of PETER -> ALICE: ${await contract.debtOf(PETER.address, ALICE.address)}`)
         console.log(`debt of PETER -> JOHN: ${await contract.debtOf(PETER.address, JOHN.address)}`)
+        console.log(`debt of ALICE -> MINER: ${await contract.debtOf(ALICE.address, MINER.address)}`)
     }
 
     before(async () => {
@@ -145,6 +146,10 @@ describe("Karma Smart contract test", () => {
                     "type": "uint256"
                 },
                 {
+                    "name": "fee",
+                    "type": "uint256"
+                },
+                {
                     "name": "nonce",
                     "type": "uint256"
                 }
@@ -156,13 +161,16 @@ describe("Karma Smart contract test", () => {
             "from": ALICE.address,
             "to": JOHN.address,
             "amount": 10,
+            "fee": 1,
             "nonce": nonce
         }
 
         const signature = await ALICE.signTypedData(karma_request_domain, types, message)
-        await contract.connect(MINER).metaTransfer(ALICE.address, JOHN.address, 10, nonce, signature)
+        const tx = await contract.connect(MINER).metaTransfer(ALICE.address, JOHN.address, 10, 1, nonce, signature)
+        // const recipt = await tx.wait()
+        // console.log(recipt.gasUsed)
         await showBalances()
-        assert.equal(await contract.balanceOf(ALICE.address), ethers.toBigInt(10))
+        assert.equal(await contract.balanceOf(ALICE.address), ethers.toBigInt(11))
     })
 
     it("Meta approve for 10 kUSD from ALICE to JOHN, executed by MINER", async () => {
@@ -181,6 +189,10 @@ describe("Karma Smart contract test", () => {
                     "type": "uint256"
                 },
                 {
+                    "name": "fee",
+                    "type": "uint256"
+                },
+                {
                     "name": "nonce",
                     "type": "uint256"
                 }
@@ -192,11 +204,12 @@ describe("Karma Smart contract test", () => {
             "owner": ALICE.address,
             "spender": JOHN.address,
             "amount": 10,
+            "fee": 1,
             "nonce": nonce
         }
 
         const signature = await ALICE.signTypedData(karma_request_domain, types, message)
-        await contract.connect(MINER).metaApprove(ALICE.address, JOHN.address, 10, nonce, signature)
+        await contract.connect(MINER).metaApprove(ALICE.address, JOHN.address, 10, 1, nonce, signature)
         let allowance = await contract.allowance(ALICE.address, JOHN.address);
         assert.equal(allowance, toBigInt(10));
     })
@@ -213,6 +226,10 @@ describe("Karma Smart contract test", () => {
                     "type": "uint256"
                 },
                 {
+                    "name": "fee",
+                    "type": "uint256"
+                },
+                {
                     "name": "nonce",
                     "type": "uint256"
                 }
@@ -223,11 +240,12 @@ describe("Karma Smart contract test", () => {
         const message = {
             "owner": ALICE.address,
             "amount": 1,
+            "fee": 1,
             "nonce": nonce
         }
 
         const signature = await ALICE.signTypedData(karma_request_domain, types, message)
-        await contract.connect(MINER).metaSetCycleReward(ALICE.address, 1, nonce, signature)
+        await contract.connect(MINER).metaSetCycleReward(ALICE.address, 1, 1, nonce, signature)
         let reward = await contract.cycleRewardOf(ALICE.address)
         assert.equal(reward, toBigInt(1));
     })
