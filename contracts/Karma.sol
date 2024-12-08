@@ -158,37 +158,39 @@ contract Karma is IERC20, IERC20Metadata, EIP712 {
     }
 
     function metaTransfer(
-        address from,
-        address to,
-        uint256 amount,
-        uint256 fee,
-        uint256 nonce,
-        bytes calldata signature
+        address[] calldata from,
+        address[] calldata to,
+        uint256[] calldata amount,
+        uint256[] calldata fee,
+        uint256[] calldata nonce,
+        bytes[] calldata signature
     ) public virtual returns (bool) {
-        uint256 currentNonce = _useNonce(from, nonce);
-        (address recoveredAddress, ECDSA.RecoverError err) = ECDSA.tryRecover(
-            _hashTypedDataV4(
-                keccak256(
-                    abi.encode(
-                        TRANSFER_REQUEST_TYPEHASH,
-                        from,
-                        to,
-                        amount,
-                        fee,
-                        currentNonce
-                    )
-                )
-            ),
-            signature
-        );
+        for (uint i = 0; i < from.length; i++) {
+            uint256 currentNonce = _useNonce(from[i], nonce[i]);
+            (address recoveredAddress, ECDSA.RecoverError err) = ECDSA.tryRecover(
+                    _hashTypedDataV4(
+                        keccak256(
+                            abi.encode(
+                                TRANSFER_REQUEST_TYPEHASH,
+                                from[i],
+                                to[i],
+                                amount[i],
+                                fee[i],
+                                currentNonce
+                            )
+                        )
+                    ),
+                    signature[i]
+                );
 
-        require(
-            err == ECDSA.RecoverError.NoError && recoveredAddress == from,
-            "Signature error"
-        );
+            require(
+                err == ECDSA.RecoverError.NoError && recoveredAddress == from[i],
+                "Signature error"
+            );
 
-        _transfer(recoveredAddress, to, amount);
-        _transfer(recoveredAddress, msg.sender, fee);
+            _transfer(recoveredAddress, to[i], amount[i]);
+            _transfer(recoveredAddress, msg.sender, fee[i]);
+        }
         return true;
     }
 
