@@ -4,20 +4,14 @@ import "hardhat-gas-reporter"
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.19",
+    version: "0.8.28",
     settings: {
       optimizer: {
         enabled: true,
-        runs: 2000,
-        details: {
-          yul: true,
-          yulDetails: {
-            stackAllocation: true,
-            optimizerSteps: "dhfoDgvulfnTUtnIf"
-          }
-        }
-      }
-    }
+        runs: 200,
+      },
+      viaIR: true,
+    },
   },
   gasReporter: {
     enabled: true,
